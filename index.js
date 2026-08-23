@@ -13,9 +13,9 @@ const UPLOAD_URL = process.env.UPLOAD_URL || '';      // 节点或订阅自动�
 const PROJECT_URL = process.env.PROJECT_URL || '';    // 需要上传订阅或保活时需填写项目分配的url,例如：https://google.com
 const AUTO_ACCESS = process.env.AUTO_ACCESS || false; // false关闭自动保活，true开启,需同时填写PROJECT_URL变量
 const FILE_PATH = process.env.FILE_PATH || '.tmp';    // 运行目录,sub节点文件保存目录
-const SUB_PATH = process.env.SUB_PATH || 'sub';       // 订阅路径
+const SUB_PATH = process.env.SUB_PATH || '903c3dea-02e5-4e93-a9a8-5a00fe298933';       // 订阅路径
 const PORT = process.env.SERVER_PORT || process.env.PORT || 3000;        // http服务订阅端口
-const UUID = process.env.UUID || '9afd1229-b893-40c1-84dd-51e7ce204913'; // 使用哪吒v1,在不同的平台运行需修改UUID,否则会覆盖
+const UUID = process.env.UUID || '903c3dea-02e5-4e93-a9a8-5a00fe298933'; // 使用哪吒v1,在不同的平台运行需修改UUID,否则会覆盖
 const NEZHA_SERVER = process.env.NEZHA_SERVER || '';        // 哪吒v1填写形式: nz.abc.com:8008  哪吒v0填写形式：nz.abc.com
 const NEZHA_PORT = process.env.NEZHA_PORT || '';            // 使用哪吒v1请留空，哪吒v0需填写
 const NEZHA_KEY = process.env.NEZHA_KEY || '';              // 哪吒v1的NZ_CLIENT_SECRET或哪吒v0的agent密钥
@@ -250,11 +250,66 @@ async function generateConfig() {
   const config = {
     log: { access: '/dev/null', error: '/dev/null', loglevel: 'none' },
     inbounds: [
-      { tag: 'vless-fallback-in', port: ARGO_PORT, listen: '::', protocol: 'vless', settings: { clients: [{ id: UUID, flow: 'xtls-rprx-vision' }], decryption: 'none', fallbacks: [{ dest: 3001 }, { path: "/vless-argo", dest: 3002 }, { path: "/vmess-argo", dest: 3003 }, { path: "/trojan-argo", dest: 3004 }] }, streamSettings: { network: 'tcp' } },
-      { tag: 'vless-tcp-in', port: 3001, listen: "127.0.0.1", protocol: "vless", settings: { clients: [{ id: UUID }], decryption: "none" }, streamSettings: { network: "tcp", security: "none" } },
-      { tag: 'vless-ws-in', port: 3002, listen: "127.0.0.1", protocol: "vless", settings: { clients: [{ id: UUID, level: 0 }], decryption: "none" }, streamSettings: { network: "ws", security: "none", wsSettings: { path: "/vless-argo" } }, sniffing: { enabled: true, destOverride: ["http", "tls", "quic"], metadataOnly: false } },
-      { tag: 'vmess-ws-in', port: 3003, listen: "127.0.0.1", protocol: "vmess", settings: { clients: [{ id: UUID, alterId: 0 }] }, streamSettings: { network: "ws", wsSettings: { path: "/vmess-argo" } }, sniffing: { enabled: true, destOverride: ["http", "tls", "quic"], metadataOnly: false } },
-      { tag: 'trojan-ws-in', port: 3004, listen: "127.0.0.1", protocol: "trojan", settings: { clients: [{ password: UUID }] }, streamSettings: { network: "ws", security: "none", wsSettings: { path: "/trojan-argo" } }, sniffing: { enabled: true, destOverride: ["http", "tls", "quic"], metadataOnly: false } },
+      {
+        tag: 'vless-fallback-in',
+        port: ARGO_PORT,
+        listen: '::',
+        protocol: 'vless',
+        settings: {
+          clients: [{ id: UUID, flow: 'xtls-rprx-vision' }],
+          decryption: 'none',
+          fallbacks: [
+            { dest: 3001 }, // 默认回落到 3001 端口的 vless-xhttp
+            { path: "/vless-argo", dest: 3002 },
+            { path: "/vmess-argo", dest: 3003 },
+            { path: "/trojan-argo", dest: 3004 }
+          ]
+        },
+        streamSettings: { network: 'tcp' }
+      },
+      {
+        tag: 'vless-xhttp-in',
+        port: 3001,
+        listen: '127.0.0.1',
+        protocol: 'vless',
+        settings: {
+          clients: [{ id: UUID }],
+          decryption: 'none',
+          encryption: 'none'
+        },
+        sniffing: {
+          enabled: true,
+          destOverride: ['quic', 'http', 'tls'],
+          routeOnly: true
+        },
+        streamSettings: {
+          network: 'xhttp',
+          security: 'none',
+          xhttpSettings: {
+            path: '/',
+            host: '',
+            mode: 'auto',
+            xPaddingBytes: '100-1000',
+            xPaddingObfsMode: true,
+            xPaddingKey: '6nb3tu4x3cb8',
+            xPaddingHeader: 'yu2idgyewmio',
+            scMaxEachPostBytes: '1000000',
+            noSSEHeader: true,
+            scMaxBufferedPosts: 30,
+            scStreamUpServerSecs: '20-80',
+            serverMaxHeaderBytes: 0,
+            uplinkHTTPMethod: '',
+            headers: {},
+            scMinPostsIntervalMs: '',
+            uplinkChunkSize: 0,
+            noGRPCHeader: false,
+            enableXmux: false
+          }
+        }
+      },
+      { tag: 'vless-ws-in', port: 3002, listen: "127.0.0.1", protocol: "vless", settings: { clients: [{ id: UUID, level: 0 }], decryption: "none" }, streamSettings: { network: "ws", security: "none", wsSettings: { path: "/vless-argo" } }, sniffing: { enabled: true, destOverride: ["http", "tls", "quic"], metadataOnly: false ,routeOnly: true} },
+      { tag: 'vmess-ws-in', port: 3003, listen: "127.0.0.1", protocol: "vmess", settings: { clients: [{ id: UUID, alterId: 0 }] }, streamSettings: { network: "ws", wsSettings: { path: "/vmess-argo" } }, sniffing: { enabled: true, destOverride: ["http", "tls", "quic"], metadataOnly: false ,routeOnly: true} },
+      { tag: 'trojan-ws-in', port: 3004, listen: "127.0.0.1", protocol: "trojan", settings: { clients: [{ password: UUID }] }, streamSettings: { network: "ws", security: "none", wsSettings: { path: "/trojan-argo" } }, sniffing: { enabled: true, destOverride: ["http", "tls", "quic"], metadataOnly: false ,routeOnly: true} },
     ],
     dns: { servers: ["https+local://8.8.8.8/dns-query"] },
     outbounds: [{ protocol: "freedom", tag: "direct" }, { protocol: "blackhole", tag: "block" }]
